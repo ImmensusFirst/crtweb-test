@@ -83,14 +83,18 @@ def register_user(user: RegisterUserRequest):
 
 
 @app.get('/all-picnics/', summary='All Picnics', tags=['picnic'])
-def all_picnics(datetime: dt.datetime = Query(default=None,
-                                              description='Время пикника (по умолчанию не задано)'),
-                past: bool = Query(default=True,
-                                   description='Включая уже прошедшие пикники')):
+def all_picnics(datetime: dt.datetime =
+                Query(default=None,
+                      description='Время пикника (по умолчанию не задано)'),
+                past: bool =
+                Query(default=True,
+                      description='Включая уже прошедшие пикники')):
     """
     Список всех пикников
     """
-    picnics = Session().query(Picnic)
+    picnics = Session().query(Picnic, City)
+    picnics = picnics.join(City, City.id == Picnic.city_id)
+
     if datetime is not None:
         picnics = picnics.filter(Picnic.time == datetime)
     if not past:
@@ -98,18 +102,28 @@ def all_picnics(datetime: dt.datetime = Query(default=None,
 
     return [{
         'id': pic.id,
-        'city': Session().query(City).filter(City.id == pic.id).first().name,
+        # 'city': Session().query(City).filter(City.id == pic.city_id).first().name,
+        'city': city.name,
         'time': pic.time,
         'users': [
             {
-                'id': pr.user.id,
-                'name': pr.user.name,
-                'surname': pr.user.surname,
-                'age': pr.user.age,
+                # 'id': pr.user.id,
+                # 'name': pr.user.name,
+                # 'surname': pr.user.surname,
+                # 'age': pr.user.age,
+                'id': user.id,
+                'name': user.name,
+                'surname': user.surname,
+                'age': user.age,
             }
-            for pr in Session().query(PicnicRegistration).filter(
-                PicnicRegistration.picnic_id == pic.id)],
-    } for pic in picnics]
+            for user in
+            Session().query(User).filter(User.id.in_(
+                Session().query(PicnicRegistration.user_id).filter(
+                    PicnicRegistration.picnic_id == pic.id)))],
+        # for user in Session().query(User).filter(User.id.in_(pic.users.user_id))],
+        # for pr, user in Session().query(PicnicRegistration, User).filter(
+        #     PicnicRegistration.picnic_id == pic.id)],
+    } for pic, city in picnics]
 
 
 @app.get('/picnic-add/', summary='Picnic Add', tags=['picnic'])
@@ -184,4 +198,8 @@ def register_to_picnic(user_id: int = None, picnic_id: int = None):
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
     uvicorn.run(app, host="0.0.0.0", port=8000)
