@@ -1,36 +1,62 @@
 import datetime as dt
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, status
 from database import engine, Session, Base, City, User, Picnic, \
     PicnicRegistration
 from external_requests import CheckCityExisting, GetWeatherRequest
-from models import RegisterUserRequest, UserModel
+from models import CityBase, CityCreate, RegisterUserRequest, UserModel
 
 app = FastAPI()
 
 
-@app.get('/create-city/', summary='Create City',
-         description='Создание города по его названию')
-def create_city(city: str = Query(description="Название города", default=None)):
+# @app.get('/create-city/', summary='Create City',
+#          description='Создание города по его названию')
+# def create_city(city: str = Query(description="Название города", default=None)):
+#     if city is None:
+#         raise HTTPException(status_code=400,
+#                             detail='Параметр city должен быть указан')
+#     check = CheckCityExisting()
+#     if not check.check_existing(city):
+#         raise HTTPException(status_code=400,
+#                             detail='Параметр city должен быть существующим городом')
+#
+#     city_object = Session().query(City).filter(
+#         City.name == city.capitalize()).first()
+#     if city_object is None:
+#         city_object = City(name=city.capitalize())
+#         s = Session()
+#         s.add(city_object)
+#         s.commit()
+#
+#     return {'id': city_object.id, 'name': city_object.name,
+#             'weather': city_object.weather}
+@app.post('/cities/', summary='Create City',
+          description='Создание города по его названию',
+          response_model=CityBase,
+          status_code=status.HTTP_201_CREATED)
+def create_city(city: CityCreate):
     if city is None:
-        raise HTTPException(status_code=400,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Параметр city должен быть указан')
     check = CheckCityExisting()
-    if not check.check_existing(city):
-        raise HTTPException(status_code=400,
+    if not check.check_existing(city.name):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Параметр city должен быть существующим городом')
 
+    city_name = city.name.capitalize()
     city_object = Session().query(City).filter(
-        City.name == city.capitalize()).first()
+        City.name == city_name).first()
     if city_object is None:
-        city_object = City(name=city.capitalize())
+        city_object = City(name=city_name)
         s = Session()
         s.add(city_object)
         s.commit()
 
-    return {'id': city_object.id, 'name': city_object.name,
-            'weather': city_object.weather}
+    return CityBase.from_orm(city_object)
+
+    # return {'id': city_object.id, 'name': city_object.name,
+    #         'weather': city_object.weather}
 
 
 @app.post('/get-cities/', summary='Get Cities')
@@ -116,13 +142,13 @@ def all_picnics(datetime: dt.datetime =
                 'surname': user.surname,
                 'age': user.age,
             }
-            for user in
-            Session().query(User).filter(User.id.in_(
-                Session().query(PicnicRegistration.user_id).filter(
-                    PicnicRegistration.picnic_id == pic.id)))],
-        # for user in Session().query(User).filter(User.id.in_(pic.users.user_id))],
-        # for pr, user in Session().query(PicnicRegistration, User).filter(
-        #     PicnicRegistration.picnic_id == pic.id)],
+            # for user in
+            # Session().query(User).filter(User.id.in_(
+            #     Session().query(PicnicRegistration.user_id).filter(
+            #         PicnicRegistration.picnic_id == pic.id)))],
+            # for user in Session().query(User).filter(User.id.in_(pic.users.user_id))],
+            for _, user in Session().query(PicnicRegistration, User).filter(
+                PicnicRegistration.picnic_id == pic.id)],
     } for pic, city in picnics]
 
 
