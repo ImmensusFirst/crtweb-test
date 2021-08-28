@@ -1,7 +1,9 @@
 /.venv/
 /.idea/
 *__pycache__*
-/src/*.db
+/.pytest_cache/
 /src/.pytest_cache
 /src/*.log
-/.pytest_cache/
+*.log
+/src/*.db
+*.db
