@@ -1,10 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
 from external_requests import GetWeatherRequest
 
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, \
+    create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+
 # Создание сессии
-SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///./main.db'
 engine = create_engine(SQLALCHEMY_DATABASE_URI)
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
