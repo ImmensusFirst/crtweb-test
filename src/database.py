@@ -1,4 +1,6 @@
-from external_requests import GetWeatherRequest
+import os
+
+from external_requests import get_weather_request
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, \
     create_engine
@@ -6,7 +8,20 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
 # Создание сессии
-SQLALCHEMY_DATABASE_URI = 'sqlite:///./main.db'
+DATABASE_HOST = os.environ.get('DATABASE_HOST', None)
+
+if DATABASE_HOST:
+    DATABASE_HOST = os.environ.get('DATABASE_HOST', None)
+    DATABASE_PORT = os.environ.get('DATABASE_PORT', None)
+    DATABASE_NAME = os.environ.get('DATABASE_NAME', None)
+    DATABASE_USER = os.environ.get('DATABASE_USER', None)
+    DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD', None)
+    SQLALCHEMY_DATABASE_URI = f'postgresql://{DATABASE_USER}:' \
+                              f'{DATABASE_PASSWORD}@' \
+                              f'{DATABASE_HOST}/{DATABASE_NAME}'
+else:
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///./main.db'
+
 engine = create_engine(SQLALCHEMY_DATABASE_URI)
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -28,9 +43,7 @@ class City(Base):
         """
         Возвращает текущую погоду в этом городе
         """
-        r = GetWeatherRequest()
-        weather = r.get_weather(self.name)
-        return weather
+        return get_weather_request(self.name)
 
     def __repr__(self):
         return f'<Город "{self.name}">'

@@ -1,9 +1,10 @@
 import datetime as dt
+import logging
 from typing import List
 
 from database import City, Picnic, PicnicRegistration, Session, User
 
-from external_requests import CheckCityExisting
+from external_requests import check_city_existing
 
 from fastapi import Depends
 from fastapi import FastAPI, HTTPException, Query, status
@@ -11,8 +12,7 @@ from fastapi import FastAPI, HTTPException, Query, status
 from models import CityBase, CityCreate, PicnicBase, PicnicCreate, PicnicList
 from models import PicnicReg, PicnicResponse, UserBase, UserCreate
 
-import uvicorn
-
+logging.basicConfig(filename='./main.log', level=logging.INFO)
 app = FastAPI()
 
 
@@ -32,8 +32,7 @@ def create_city(city: CityCreate, db: Session = Depends(get_db)):
     """
     Создание города
     """
-    check = CheckCityExisting()
-    if not check.check_existing(city.name):
+    if not check_city_existing(city.name):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Параметр city должен быть существующим '
                                    'городом')
@@ -184,11 +183,3 @@ def register_to_picnic(data: PicnicReg, db: Session = Depends(get_db)):
     return PicnicResponse(id=preg.id, picnic=data.picnic_id,
                           user=db.query(User).filter(
                               User.id == preg.user_id).first().name)
-
-
-if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig()
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-    uvicorn.run(app, host="0.0.0.0", port=8000)

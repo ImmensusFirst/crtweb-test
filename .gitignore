@@ -2,3 +2,6 @@
 /.idea/
 *__pycache__*
 /src/*.db
+/src/.pytest_cache
+/src/*.log
+/.pytest_cache/
